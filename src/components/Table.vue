@@ -2,10 +2,13 @@
   <!-- Begin App! -->
 <div>
   <div v-if="awnLoaded" class="m-4">
-    <h1 class="text-2xl">Select your AWN .csv report</h1>
-    <p>Start by running an AWN report and exporting the results to .csv</p>
-    <p>Then, open that file with this tool.</p>
-    <input type="file" id="awnReport" v-on:change="handleAwnReport($data, $event)">
+      <!-- This got moved to Loader.vue.
+        <h1 class="text-2xl">Select your AWN .csv report</h1>
+        <p>Start by running an AWN report and exporting the results to .csv</p>
+        <p>Then, open that file with this tool.</p>
+        <input type="file" id="awnReport" v-on:change="handleAwnReport($data, $event)">
+      -->
+      <p>You'll have to load something first. Go to "Loaded" on the Nav above.</p>
   </div>
   <!-- Temporary text boxes for filtering -->
   <div class="text-gray-900" v-if="work_centers.length > 0"> 
@@ -285,16 +288,14 @@
 </template>
 
 <script>
-import {csvParse} from 'd3-dsv';
 import moment from 'moment';
 
 export default {
   name: 'HelloWorld',
   data: function() {
       return {
-        awn: [],
-        work_centers: [],
-        selected_work_centers: [],
+        // work_centers: [],
+        // selected_work_centers: ["IM01"],
         // Filter variables
         locationFilter: "",
         equipmentFilter: "",
@@ -308,6 +309,15 @@ export default {
   },
   computed: {
     // Used to determine if a file has been loaded. Prevents showing an empty table.
+    awn: function() {
+        return this.$store.state.awn;
+    },
+    work_centers: function() {
+        return this.$store.state.work_centers;
+    },
+    selected_work_centers: function() {
+        return this.$store.state.selected_work_centers;
+    },
     awnLoaded: function() {
       return !this.awn.length > 0;
     },
@@ -358,95 +368,6 @@ export default {
     },
     unselectPriorities: function() {
       this.priorityFilter = [];
-    },
-    handleAwnReport: (vm, e) => {
-      // https://github.com/d3/d3-dsv
-      // Pick out the file from the input
-      const fileList = e.target.files;
-      const csvFile = fileList[0];
-      // Create a file reader to read the file
-      const fr = new FileReader();
-      // Tell the reader to read the file
-      fr.readAsText(csvFile);
-      // Once loaded, we parse the result and concat it to existing awn
-      fr.addEventListener("load", () => { 
-        function parseDateStringToMoment(str) {
-          return str != "" ? moment(str.split('').filter(i => i != '=' && i != '"').join(''), "MM/DD/YYYY") : "";
-        }
-        function actualReviewDate(str, wd) {
-          const dateDiscovered = parseDateStringToMoment(wd);
-          // Strip the last date that looks like a review date out
-          var arr = [...str.matchAll(/((?:\d|\d\d)\/\d\d\/\d\d\d\d).*\n.*(?:R.*V.*W(?:ED|D))/g)]
-          // return that as the last actual day reviewed... as a moment object.
-          if (arr.length == 0) {
-            return dateDiscovered;
-          } else {
-            return moment(arr[arr.length - 1][1], "MM/DD/YYYY");
-          }
-        }
-        function lastReviewedBy(str) {
-          var arr = [...str.matchAll(/([A-Z]+,\s[A-Z]).*\n.*(?:R.*V.*W(?:ED|D))/g)];
-          if (arr.length == 0) {
-            return "originator"
-          } else {
-            return arr[arr.length - 1][1];
-          }
-        }
-        // 'data' becomes a collection of rows from the awn report
-        let result = csvParse(fr.result, function(d) {
-          return {
-            work_center: d.WORKCENTER,
-            location: d.LOCATION,
-            equipment: d.EQUIPMENT,
-            sn: d.SERIAL_NUMBER,
-            summary: d.SUMMARY,
-            jcn: d.JCN.substring(9),
-            problem: d.PROBLEM,
-            recommendation: d.RECOMMENDATION,
-            ships_force_comments: d.SHIPS_FORCE_COMMENTS.split('').filter(l => l != '*').join(''),
-            equip_status: d.EQUIP_STATUS_CODE,
-            status: d.JOB_STATUS,
-            priority_code: d.PRIORITY_CODE,
-            act_taken: d.ACTION_TAKEN,
-            avail: d.AVAIL_ID,
-            type_avail: d.TYPE_AVAILABILITY_CODE.split('').filter(i => i != '=' && i != '"').join(''),
-            port_eng_comments: d.MAINTENANCE_TEAM_COMMENTS,
-            safety_code: d.SAFETY_CODE,
-            problem_mentions_safety: d.PROBLEM.toLowerCase().search(/safety|unsafe/g) > -1,
-            recommendation_mentions_safety: d.RECOMMENDATION.toLowerCase().search(/safety|unsafe/g) > -1,
-            completion_date: parseDateStringToMoment(d.COMPLETION_DATE),
-            date_discovered: parseDateStringToMoment(d.WHEN_DISCOVERED_DATE),
-            deferral_date: parseDateStringToMoment(d.DEFERRAL_DATE),
-            deferral_reason: d.DEFERRAL_REASON_CODE.split('').filter(i => i != '=' && i != '"').join(''),
-            actual_solution: d.ACTUAL_SOLUTION,
-            should_have_parts: d.RECOMMENDATION.toLowerCase().search(/part|order|requisition|open purchase/g) > -1,
-            parts: d.PARTS_ORDERED,
-            routing_level: d.ROUTING_LEVEL,
-            block_10: d.BLOCK_10,
-            days_old: d.DAYS_OLD.split('').filter(i => i != '=' && i != '"').join(''),
-            days_since_update: d.DAYS_SINCE_UPDATE.split('').filter(i => i != '=' && i != '"').join(''),
-            actual_reviewed_date: actualReviewDate(d.SHIPS_FORCE_COMMENTS, d.WHEN_DISCOVERED_DATE),
-            reviewed_by: lastReviewedBy(d.SHIPS_FORCE_COMMENTS),
-          }
-        }).filter(i => i.location != "");
-        result.sort((a, b) => {
-          if (a.work_center < b.work_center) {
-            return -1;
-          } else if (a.work_center > b.work_center) {
-            return 1;
-          }
-          if (+a.jcn < +b.jcn) {
-            return -1;
-          } 
-          return 1;
-        });
-        vm.awn = vm.awn.concat(result);
-        // Add all work centers to the work center list
-        vm.awn.forEach((e) => {if (!vm.work_centers.includes(e.work_center)) { vm.work_centers.push(e.work_center)}});
-        // Select all work centers initially.        
-        vm.selected_work_centers = vm.work_centers.map(i => i);
-      }, false);
-      
     },
   }
 }
