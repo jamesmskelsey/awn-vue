@@ -31,7 +31,6 @@ export default {
     methods: {
         ...mapActions({
             /* Just remembering how to use vuex. Actions dispatch to do mutators/async things */
-            add: 'increment', 
             addAWN: 'addAWN',
             
         }),
@@ -39,7 +38,10 @@ export default {
             function parseDateStringToMoment(str) {
                 return str != "" ? moment(str.split('').filter(i => i != '=' && i != '"').join(''), "MM/DD/YYYY") : "";
             }
-            function actualReviewDate(str, wd) {
+            function formatDateString(str) {
+                return parseDateStringToMoment(str) != "" ? parseDateStringToMoment(str).format('DD MMM YY') : "";
+            }
+            function reviewDate(str, wd) {
                 const dateDiscovered = parseDateStringToMoment(wd);
                 // Strip the last date that looks like a review date out
                 var arr = [...str.matchAll(/((?:\d|\d\d)\/\d\d\/\d\d\d\d).*\n.*(?:R.*V.*W(?:ED|D))/g)]
@@ -49,6 +51,12 @@ export default {
                 } else {
                     return moment(arr[arr.length - 1][1], "MM/DD/YYYY");
                 }
+            }
+            function actualReviewDate(str, wd) {
+                return reviewDate(str, wd).format('DD MMM YY');
+            }
+            function expiredReviewDate(str, wd) {
+                return reviewDate(str, wd).isBefore(new moment().subtract(90, 'days'))
             }
             function lastReviewedBy(str) {
                 var arr = [...str.matchAll(/([A-Z]+,\s[A-Z]).*\n.*(?:R.*V.*W(?:ED|D))/g)];
@@ -61,6 +69,7 @@ export default {
             // 'data' becomes a collection of rows from the awn report
             let result = csvParse(e.target.result, function(d) {
                 return {
+                    id: d.JCN.substring(5),
                     work_center: d.WORKCENTER,
                     location: d.LOCATION,
                     equipment: d.EQUIPMENT,
@@ -73,16 +82,16 @@ export default {
                     equip_status: d.EQUIP_STATUS_CODE,
                     status: d.JOB_STATUS,
                     priority_code: d.PRIORITY_CODE,
-                    act_taken: d.ACTION_TAKEN,
+                    act_taken: d.ACTION_TAKEN_CODE,
                     avail: d.AVAIL_ID,
                     type_avail: d.TYPE_AVAILABILITY_CODE.split('').filter(i => i != '=' && i != '"').join(''),
                     port_eng_comments: d.MAINTENANCE_TEAM_COMMENTS,
                     safety_code: d.SAFETY_CODE,
                     problem_mentions_safety: d.PROBLEM.toLowerCase().search(/safety|unsafe/g) > -1,
                     recommendation_mentions_safety: d.RECOMMENDATION.toLowerCase().search(/safety|unsafe/g) > -1,
-                    completion_date: parseDateStringToMoment(d.COMPLETION_DATE),
-                    date_discovered: parseDateStringToMoment(d.WHEN_DISCOVERED_DATE),
-                    deferral_date: parseDateStringToMoment(d.DEFERRAL_DATE),
+                    completion_date: formatDateString(d.COMPLETION_DATE),
+                    date_discovered: formatDateString(d.WHEN_DISCOVERED_DATE),
+                    deferral_date: formatDateString(d.DEFERRAL_DATE),
                     deferral_reason: d.DEFERRAL_REASON_CODE.split('').filter(i => i != '=' && i != '"').join(''),
                     actual_solution: d.ACTUAL_SOLUTION,
                     should_have_parts: d.RECOMMENDATION.toLowerCase().search(/part|order|requisition|open purchase/g) > -1,
@@ -92,9 +101,12 @@ export default {
                     days_old: d.DAYS_OLD.split('').filter(i => i != '=' && i != '"').join(''),
                     days_since_update: d.DAYS_SINCE_UPDATE.split('').filter(i => i != '=' && i != '"').join(''),
                     actual_reviewed_date: actualReviewDate(d.SHIPS_FORCE_COMMENTS, d.WHEN_DISCOVERED_DATE),
+                    expired_reviewed_date: expiredReviewDate(d.SHIPS_FORCE_COMMENTS, d.WHEN_DISCOVERED_DATE),
                     reviewed_by: lastReviewedBy(d.SHIPS_FORCE_COMMENTS),
                 }
             }).filter(i => i.location != "");
+            // The trailing filter here removes any jobs that AWN returned to me that were garbage.
+            /* Sorting the resulting array does nothing for me.
             result.sort((a, b) => {
                 if (a.work_center < b.work_center) {
                     return -1;
@@ -105,7 +117,7 @@ export default {
                     return -1;
                 } 
                 return 1;
-            });
+            }); */
             // Dispatch with the result array. This adds all the AWNs to the awn array in vuex...
             // And adds the full list of work centers to the list
             // And selects all of the available work centers

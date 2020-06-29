@@ -1,29 +1,15 @@
 <template>
   <!-- Begin App! -->
 <div>
-  <div v-if="awnLoaded" class="m-4">
-      <!-- This got moved to Loader.vue.
-        <h1 class="text-2xl">Select your AWN .csv report</h1>
-        <p>Start by running an AWN report and exporting the results to .csv</p>
-        <p>Then, open that file with this tool.</p>
-        <input type="file" id="awnReport" v-on:change="handleAwnReport($data, $event)">
-      -->
-      <p>You'll have to load something first. Go to "Loaded" on the Nav above.</p>
-  </div>
   <!-- Temporary text boxes for filtering -->
-  <div class="text-gray-900" v-if="work_centers.length > 0"> 
-    <div class="no-print" v-if="work_centers.length > 0">
+  <div class="text-gray-900"> 
+    <div class="no-print">
         <div class="m-4 inline-block border rounded">
         <div class="m-4 block">
             <label class="block my-2 text-lg">Menu Visibility</label>
             <button v-on:click="() => showMenu = !showMenu" class="block border border-gray-500 rounded px-4 py-2 hover:bg-gray-200 transition">
             {{showMenu ? "Hide Menu" : "Show Menu"}}
             </button>
-        </div>
-        <div v-if="showMenu" class="m-4 block">
-            <label class="block my-2 text-lg text-gray-900" for="reviewDays">Days Since Review</label>
-            <input class="shadow border border-gray-500 rounded p-2 focus:outline-none focus:shadow-outline" id="reviewDays" v-model="reviewDays" type="text" />
-
         </div>
         </div>
         <div v-if="showMenu" class="m-4 inline-block border rounded">
@@ -76,8 +62,8 @@
             <label class="block my-2 text-lg" for="work_centers">Work Centers</label>
             <select class="h-32 shadow border border-gray-500 rounded p-2 focus:outline-none focus:shadow-outline"
                     id="work_centers" v-model="selected_work_centers" multiple>
-            <option v-for="o in work_centers" v-bind:key="o">
-                {{o}}
+            <option v-for="o in work_centers" v-bind:key="o.wc">
+                {{o.wc}}
             </option>
             </select>
         </div>
@@ -91,14 +77,34 @@
             Select All
             </button>
         </div>
+        </div>
+        <div class="m-4 inline-block border rounded">
+            <div class="m-4 block">
+                <label class="block my-2 text-lg">Search by WC</label>
+                <button v-if="selected_work_centers.length <= 10" v-on:click="search" class="block border border-gray-500 rounded px-4 py-2 hover:bg-gray-200 transition">
+                    Search
+                </button>
+                <button v-else class="block border border-gray-500 rounded px-4 py-2 hover:bg-gray-200 transition">
+                    Too many WC selected
+                </button>
+            </div>
+            <div class="m-4 block">
+                <label class="block mt-2 text-lg">Show Hot Jobs</label>
+                <p class="text-gray-500 mb-2 text-xs">Selects all WC</p>
+                <button v-on:click="searchHotJobs" class="block border border-gray-500 rounded px-4 py-2 hover:bg-gray-200 transition">
+                    Hot!
+                </button>
+            </div>
         </div>    
     </div>
   </div>
   <!-- Test table for quick visual reloading -->
-
   <table v-if="!awnLoaded" class="min-w-full">
     <thead class="uppercase bg-teal-600 text-sm">
       <tr class="border-b-2 border-gray-600">
+        <th class="text-left border border-gray-500">
+          <div>HOT</div>
+        </th>
         <th class="text-left border border-gray-500">
           <div>W/C</div>
           <div>JSN</div>
@@ -140,13 +146,18 @@
           v-bind:key="t.jcn"
           class="border-b shadow-sm mb-8" 
           >
+        <td :class="t.hot_job ? 'bg-red-500 text-white' : 'bg-white' ">
+            {{t.hot_job ? "HOT" : ""}}
+        </td>
         <td class=" border border-gray-500">
-          <div class="font-small">
-            {{t.work_center}}
-          </div>
-          <div>
-            {{t.jcn}}
-          </div>
+            <router-link class="text-teal-700 font-semibold" :to="{name: 'Job', params: {id: t.id}}">
+                <div class="font-small">
+                    {{t.work_center}}
+                </div>
+                <div>
+                    {{t.jcn}}
+                </div>
+            </router-link>
         </td>
         <td class=" border border-gray-500">
           <div>
@@ -189,12 +200,12 @@
       <!-- Generated Comments to highlight possible problems -->
           <div contenteditable>
             Comments: 
-            <span class="bg-red-500" v-if="t.actual_reviewed_date.isBefore(new moment().subtract(reviewDays, 'days'))">
+            <span class="bg-red-500" v-if="t.expired_reviewed_date">
               <!-- MUST FIGURE OUT BEFORE LOADING NEW -->
-              Reviewed more than {{reviewDays}} ago by {{t.reviewed_by}} on {{t.actual_reviewed_date.format('DD MMM YY')}}.
+              Reviewed more than {{reviewDays}} ago by {{t.reviewed_by}} on {{t.actual_reviewed_date}}.
             </span>
             <span v-else>
-              Reviewed by {{t.reviewed_by}} on {{t.actual_reviewed_date.format('DD MMM YY')}}.
+              Reviewed by {{t.reviewed_by}} on {{t.actual_reviewed_date}}.
             </span>
             <!-- looks safety related, but safety block not marked -->
             <span class="bg-red-500" v-if="( t.problem_mentions_safety || t.recommendation_mentions_safety ) && t.safety_code.length == 0">
@@ -234,13 +245,13 @@
         </td>
         <td class="text-center border border-gray-500">
           <div>
-            {{t.date_discovered != '' ? t.date_discovered.format('DD MMM YY') : ''}}
+            {{t.date_discovered != '' ? t.date_discovered : ''}}
           </div>
           <div>
-            {{t.deferral_date != '' ? t.deferral_date.format('DD MMM YY') : '___  ____  ___'}}({{t.deferral_reason}})
+            {{t.deferral_date != '' ? t.deferral_date : '___  ____  ___'}}({{t.deferral_reason}})
           </div>
           <div>
-            {{t.completion_date != '' ? t.completion_date.format('DD MMM YY') : '___  ____  ___'}}
+            {{t.completion_date != '' ? t.completion_date : '___  ____  ___'}}
           </div>
         </td>
         <td class="border border-gray-500 text-center">
@@ -289,47 +300,51 @@
 
 <script>
 import moment from 'moment';
+import { mapActions, mapGetters } from 'vuex'
+import { db } from '../db.js'
+
+const wnsRef = db.collection('wns');
 
 export default {
   name: 'HelloWorld',
   data: function() {
       return {
-        // work_centers: [],
-        // selected_work_centers: ["IM01"],
-        // Filter variables
         locationFilter: "",
         equipmentFilter: "",
         statusFilter: [],
+        selected_work_centers: [],
         priorityFilter: [],
         priorityOptions: [1,2,3,4],
-        reviewDays: 90,
         showMenu: true,
+        reviewDays: 90,
         moment
       }
   },
+  mounted: async function() {
+      // This is necessary to actually make the bind happen in the store.
+      // Not documented in Vuexfire. Obvious once it's here. I'm tired, but i knew this is what I was trying to do.
+      await this.$store.dispatch('bindWC');
+  },
   computed: {
     // Used to determine if a file has been loaded. Prevents showing an empty table.
+    ...mapGetters(['wns']),
     awn: function() {
         return this.$store.state.awn;
     },
     work_centers: function() {
         return this.$store.state.work_centers;
     },
-    selected_work_centers: function() {
-        return this.$store.state.selected_work_centers;
-    },
     awnLoaded: function() {
-      return !this.awn.length > 0;
+      return !this.wns.length > 0;
     },
     statusOptions: function() {
-      const statuses = this.awn.map((e) => e.status);
+      const statuses = this.wns.map((e) => e.status);
       return statuses.filter((value, index, self) => self.indexOf(value) === index);
     },
     // Filters the table based on all available inputs.
     filteredWN: function() {
-      let output = this.awn.map((e) => e);
+      let output = this.wns.map((e) => e);
       output = output.filter((e) => {
-          // selected_work_centers.includes(t.work_center)
           return this.selected_work_centers.includes(e.work_center);
       })
       if (this.locationFilter.length > 0) {
@@ -349,7 +364,7 @@ export default {
       }
       if (this.priorityFilter.length > 0) {
         output = output.filter((e) => {
-          return this.priorityFilter.includes(e.status);
+          return this.priorityFilter.includes(e.priority_code);
         })
       }
       
@@ -357,8 +372,41 @@ export default {
     }
   },
   methods: {
+    ...mapActions([
+        'bindWC',
+        'rememberWN',
+    ]),
+    search: async function() {
+        // Firestore 'in' operator is limited to an array of 10.
+        if (this.selected_work_centers.length <= 10) {
+            this.$store.dispatch('clearAWN');
+            const snapshot = await wnsRef.where('work_center', 'in', this.selected_work_centers).get();
+            if (snapshot.empty) {
+                console.log('Nothing found.');
+                return;
+            }
+
+            snapshot.forEach(doc => {
+                this.$store.dispatch('rememberWN', {...doc.data()})
+            })
+        }
+    },
+    searchHotJobs: async function() {
+        this.$store.dispatch('clearAWN');
+        const snapshot = await wnsRef.where('hot_job', '==', true).get();
+        if (snapshot.empty) {
+            console.log('Nothing found.');
+            return;
+        }
+
+        snapshot.forEach(doc => {
+            this.$store.dispatch('rememberWN', {...doc.data()})
+            this.selectAll();
+        })
+    },
     selectAll: function() {
-      this.selected_work_centers = this.work_centers.map((e) => e);
+        console.log(this.work_centers)
+      this.selected_work_centers = this.work_centers.map((e) => e.id);
     },
     unselectAll: function() {
       this.selected_work_centers = [];

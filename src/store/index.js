@@ -1,35 +1,68 @@
 import Vue from 'vue'
 import Vuex from 'vuex'
-
+import { vuexfireMutations, firestoreAction } from 'vuexfire'
+import { db } from '../db.js'
 Vue.use(Vuex)
 
 export default new Vuex.Store({
   state: {
+    wns: [],
+    job: {},
     awn: [],
     selected_work_centers: [],
     work_centers: [],
-    count: 42,
+    count: 0,
   },
   mutations: {
-      increment (state) {
-          state.count++
-      },
-      addAWN (state, awn) {
-            // Dispatch with the result array. This adds all the AWNs to the awn array in vuex...
-            // And adds the full list of work centers to the list
-            // And selects all of the available work centers
-          state.awn = [...awn]
-          state.awn.forEach((e) => {if (!state.work_centers.includes(e.work_center)) { state.work_centers.push(e.work_center)}});
-          state.selected_work_centers = state.work_centers.map(i => i);
-      }
+      ...vuexfireMutations,
+        addAWN (state, awn) {
+            // This adds an ARRAY of Work Notificationis to state.awn
+            state.awn = [...awn]
+        },
+        addWN (state, wn) {
+            // this adds a single work notification to state.awn
+            state.wns.push(wn)
+        },
+        clearAWN (state) {
+            // clears out the awn array to make way for new search results.
+            state.wns = []
+        }
   },
   actions: {
-      increment (context) {
-          context.commit('increment')
-      },
-      addAWN ({commit}, awn) {
-        commit('addAWN', awn)
-      }
+        
+        // This binds ALL of the jobs that are in the database at once.
+        bindWC: firestoreAction(async function({bindFirestoreRef}) {
+            console.log("I'm binding the work centers!");
+            await bindFirestoreRef('work_centers', db.collection('work_centers'), {wait: true})
+        }),
+        bindJob: firestoreAction(async function({bindFirestoreRef}, payload) {
+            console.log("I'm binding a single job!", payload);
+            await bindFirestoreRef('job', db.collection('wns').doc(payload.id.toUpperCase()), {wait: true})
+        }),
+        clearAWN ({commit}) {
+            commit('clearAWN')
+        },
+        // In this case, "awn" stands for "all work notifications"
+        rememberWN ({commit}, wn) {
+            commit('addWN', wn);
+        },
+        // this function receives an array of jobs that it iterates across and sends the updates to the database via saveWN
+        addAWN ({dispatch, commit}, awn) {
+            commit('addAWN', awn)
+            awn.forEach(e => dispatch('saveWN', e));
+        },
+        // add WN to firestore... via async
+        async saveWN ({commit}, wn) {
+            // going to use 'await wnRef.set({...wn}, {merge: true})
+            const wnRef = db.collection('wns').doc(wn.id)
+            const res = await wnRef.set({...wn}, {merge: true})
+            console.log(res, commit)
+        }
+  },
+  getters: {
+        wns(state) {
+            return state.wns
+        }
   },
   modules: {
   }

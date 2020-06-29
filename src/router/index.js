@@ -2,10 +2,11 @@ import Vue from 'vue'
 import VueRouter from 'vue-router'
 import Home from '../views/Home.vue'
 import Loader from '../views/Loader.vue'
+import Job from '../views/Job.vue'
 
 Vue.use(VueRouter)
 
-  const routes = [
+const routes = [
   {
     path: '/',
     name: 'Home',
@@ -23,6 +24,11 @@ Vue.use(VueRouter)
       path: '/loader',
       name: 'Loader',
       component: Loader,
+  },
+  {
+      path: '/job/:id',
+      name: 'Job',
+      component: Job,
   }
 ]
 
