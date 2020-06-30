@@ -196,49 +196,7 @@
             <hr>
           </div>
       <!-- Generated Comments to highlight possible problems -->
-          <div contenteditable>
-            Comments: 
-            <span class="bg-red-500" v-if="t.expired_reviewed_date">
-              <!-- MUST FIGURE OUT BEFORE LOADING NEW -->
-              Reviewed more than {{reviewDays}} ago by {{t.reviewed_by}} on {{t.actual_reviewed_date}}.
-            </span>
-            <span v-else>
-              Reviewed by {{t.reviewed_by}} on {{t.actual_reviewed_date}}.
-            </span>
-            <!-- looks safety related, but safety block not marked -->
-            <span class="bg-red-500" v-if="( t.problem_mentions_safety || t.recommendation_mentions_safety ) && t.safety_code.length == 0">
-              This job appears to be safety related, but no safety code is selected.
-            </span>
-            <!-- both recommendation/problem don't mention safety -->
-            <span class="bg-red-500" v-if="t.problem_mentions_safety && !t.recommendation_mentions_safety">
-              The problem seems to mention safety, but the recommendation does not.
-            </span>
-            <span class="bg-red-500" v-if="!t.problem_mentions_safety && t.recommendation_mentions_safety">
-              The recommendation seems to mention safety, but the problem does not.
-            </span>
-            <span class="bg-red-500" v-if="!t.problem_mentions_safety && !t.recommendation_mentions_safety && t.safety_code.length > 0">
-              The job safety code is marked, but the job doesn't seem to mention safety - it should be left blank.
-            </span>
-            <!-- looks like depot job, but not marked -->
-            <span class="bg-red-500" v-if="t.recommendation.toLowerCase().search(/outside activity|depot/g) > -1 && t.type_avail != '1'">
-              Is this job a DEPOT level job? The recommendation seems to mention depot level, but job is marked as {{t.type_avail}}.
-            </span>
-            <!-- looks like intermediate job, but not marked -->
-            <span class="bg-red-500" v-if="t.recommendation.toLowerCase().search(/swrmc|intermediate/g) > -1 && t.type_avail != '2'">
-              Is this job an INTERMEDIATE level job? The recommendation seems to mention intermediate level, but job is marked as {{t.type_avail}}.
-            </span>
-            <!-- looks like corrosion based maintenance, but block 10 not marked -->
-            <span class="bg-red-500" v-if="t.problem.toLowerCase().search(/corrosion|corroded/g) > -1 && t.block_10 != 'C'">
-              Problem says 'corrosion', block 10 is not 'C'.
-            </span>
-            <!-- looks like compartment based maintenance, but block 10 not marked -->
-            <span class="bg-red-500" v-if="t.problem.toLowerCase().search(/zone inspection|inspection|6200.001/g) > -1 && !(t.block_10 == 'Z' || t.block_10 == 'C')">
-              Problem seems to be compartment related, block 10 is not 'Z'.
-            </span>
-            <span class="bg-red-500" v-if="t.status == 'TECH CLOSE' && (t.actual_solution == '' || t.routing_level == 'WCS')">
-              If WN is in "TECH CLOSE", must have actual solution and be routed to at least LCPO.
-            </span>
-          </div>
+          <GeneratedComments :job="t" />
       <!-- end of generated comments -->
         </td>
         <td class="text-center border border-gray-500">
@@ -300,11 +258,15 @@
 import moment from 'moment';
 import { mapActions, mapGetters } from 'vuex'
 import { db } from '../db.js'
+import GeneratedComments from './GeneratedComments.vue'
 
 const wnsRef = db.collection('wns');
 
 export default {
   name: 'HelloWorld',
+  components: {
+      GeneratedComments,
+  },
   data: function() {
       return {
         locationFilter: "",
