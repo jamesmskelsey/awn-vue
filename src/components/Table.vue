@@ -62,9 +62,7 @@
             <label class="block my-2 text-lg" for="work_centers">Work Centers</label>
             <select class="h-32 shadow border border-gray-500 rounded p-2 focus:outline-none focus:shadow-outline"
                     id="work_centers" v-model="selected_work_centers" multiple>
-            <option v-for="o in work_centers" v-bind:key="o.wc">
-                {{o.wc}}
-            </option>
+            <option v-for="o in work_centers" v-bind:key="o.wc">{{o.wc}}</option>
             </select>
         </div>
         <div class="inline-block">
@@ -312,7 +310,7 @@ export default {
         locationFilter: "",
         equipmentFilter: "",
         statusFilter: [],
-        selected_work_centers: [],
+        //selected_work_centers: [],
         priorityFilter: [],
         priorityOptions: [1,2,3,4],
         showMenu: true,
@@ -330,6 +328,17 @@ export default {
     ...mapGetters(['wns']),
     awn: function() {
         return this.$store.state.awn;
+    },
+    // selected_work_centers: function() {
+    //     return this.$store.state.selected_work_centers;
+    // },
+    selected_work_centers: {
+        get() {
+            return this.$store.state.selected_work_centers;
+        },
+        set(e) {
+            this.$store.dispatch('rememberSelectedWorkCenters', e);
+        }
     },
     work_centers: function() {
         return this.$store.state.work_centers;
@@ -375,6 +384,7 @@ export default {
     ...mapActions([
         'bindWC',
         'rememberWN',
+        'rememberSelectedWorkCenters',
     ]),
     search: async function() {
         // Firestore 'in' operator is limited to an array of 10.
@@ -405,17 +415,18 @@ export default {
         })
     },
     selectAll: function() {
-        console.log(this.work_centers)
-      this.selected_work_centers = this.work_centers.map((e) => e.id);
+        // this.selected_work_centers = this.work_centers.map((e) => e.id);
+        this.$store.dispatch('rememberSelectedWorkCenters', this.work_centers.map((e) => e.id));
     },
     unselectAll: function() {
-      this.selected_work_centers = [];
+        // this.selected_work_centers = [];
+        this.$store.dispatch('rememberSelectedWorkCenters', []);
     },
     unselectAllStatuses: function() {
-      this.statusFilter = [];
+        this.statusFilter = [];
     },
     unselectPriorities: function() {
-      this.priorityFilter = [];
+        this.priorityFilter = [];
     },
   }
 }

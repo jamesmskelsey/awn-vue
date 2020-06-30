@@ -20,7 +20,7 @@ export default {
         ]),
         handleSaveWN(repo_comments, hot_job) {
             const id = this.id;
-            this.$store.dispatch('saveWN', {
+            return this.$store.dispatch('saveWN', {
                 id, repo_comments, hot_job
             })
         }

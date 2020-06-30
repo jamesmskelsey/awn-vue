@@ -9,7 +9,7 @@ export default new Vuex.Store({
     wns: [],
     job: {},
     awn: [],
-    selected_work_centers: [],
+    selected_work_centers: ["AS01", "AS02"],
     work_centers: [],
     count: 0,
   },
@@ -26,6 +26,9 @@ export default new Vuex.Store({
         clearAWN (state) {
             // clears out the awn array to make way for new search results.
             state.wns = []
+        },
+        setSelectedWorkCenters(state, selected) {
+            state.selected_work_centers = [...selected]
         }
   },
   actions: {
@@ -55,8 +58,11 @@ export default new Vuex.Store({
         async saveWN ({commit}, wn) {
             // going to use 'await wnRef.set({...wn}, {merge: true})
             const wnRef = db.collection('wns').doc(wn.id)
-            const res = await wnRef.set({...wn}, {merge: true})
-            console.log(res, commit)
+            console.log(commit);
+            return await wnRef.set({...wn}, {merge: true})
+        },
+        rememberSelectedWorkCenters({commit}, selected) {
+            commit('setSelectedWorkCenters', selected)
         }
   },
   getters: {

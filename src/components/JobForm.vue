@@ -6,11 +6,28 @@ export default {
         return {
             repo_comments: this.initialComments ? this.initialComments : "",
             hot_job: this.initialHotJob ? this.initialHotJob : false,
+            updateSaved: false,
         }
     },
     methods: {
         handleSave() {
+            this.updateSaved = false;
             this.handleSaveWN(this.repo_comments, this.hot_job)
+                .then(() => {
+                    this.updateSaved = true;
+                })
+        }
+    },
+    watch: {
+        initialComments: function(newVal, oldVal) {
+            if (newVal != oldVal) {
+                this.repo_comments = newVal;
+            }
+        },
+        initialHotJob: function(newVal, oldVal) {
+            if (newVal != oldVal) {
+                this.hot_job = newVal;
+            }
         }
     }
 }
@@ -27,7 +44,8 @@ export default {
             <textarea cols="50" rows="5" class="border" v-model="repo_comments"></textarea><br>
             <input type="checkbox" v-model="hot_job" />
             <label>Hot Job</label><br>
-            <input @click="handleSave" class="mb-10 text-white bg-black px-4 py-2 uppercase tracking-widest font-medium" type="button" value="save" />
+            <p v-if="updateSaved">Update Saved!</p>
+            <input @click="handleSave" class="mx-5 text-white bg-black px-4 py-2 uppercase tracking-widest font-medium" type="button" value="save" />
 
         </div>
     </div>
