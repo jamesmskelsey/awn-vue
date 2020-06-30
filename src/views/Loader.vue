@@ -104,23 +104,10 @@ export default {
                     expired_reviewed_date: expiredReviewDate(d.SHIPS_FORCE_COMMENTS, d.WHEN_DISCOVERED_DATE),
                     reviewed_by: lastReviewedBy(d.SHIPS_FORCE_COMMENTS),
                 }
-            }).filter(i => i.location != "");
+            }).filter(i => i.location != "").filter(i => i.id != "");;
             // The trailing filter here removes any jobs that AWN returned to me that were garbage.
-            /* Sorting the resulting array does nothing for me.
-            result.sort((a, b) => {
-                if (a.work_center < b.work_center) {
-                    return -1;
-                } else if (a.work_center > b.work_center) {
-                    return 1;
-                }
-                if (+a.jcn < +b.jcn) {
-                    return -1;
-                } 
-                return 1;
-            }); */
-            // Dispatch with the result array. This adds all the AWNs to the awn array in vuex...
-            // And adds the full list of work centers to the list
-            // And selects all of the available work centers
+            
+            // Dispatch with the result array. That pushes all the jobs to firebase.
             store.dispatch('addAWN', result);
             
         },
