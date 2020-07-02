@@ -18,10 +18,18 @@ wcs.forEach(wc => {
 const wnRef = db.collection('wns');
 
 function uploadJobsFromArray(jobs) {
+    // I have two chunks of code here. I could write a thing to check for arguments, but i just don't wanna.
+    // Disable uploading for t/s
     console.log("Uploading: ", jobs.length, " jobs.")
     Promise.all(jobs.map(job => uploadJob(job))).then((values) => {
         console.log("uploaded all jobs");
     })
+    // console.log(jobs.length)
+    // jobs.forEach((job) => {
+    //         console.log(job.id, job.actual_reviewed_date, job.reviewed_by)
+
+
+    // })
 }
 
 function uploadJob(job) {
@@ -41,12 +49,13 @@ function parseReport(e) {
     function reviewDate(str, wd) {
         const dateDiscovered = parseDateStringToMoment(wd);
         // Strip the last date that looks like a review date out
-        var arr = [...str.matchAll(/((?:\d|\d\d)\/\d\d\/\d\d\d\d).*\n.*(?:R.*V.*W(?:ED|D))/g)]
+        const reviewArray = [...str.matchAll(/((?:\d|\d\d)\/\d\d\/\d\d\d\d).*(?:\r|\n|\r\n).*(?:R.*V.*W(?:ED|D)*)/g)]
+        
         // return that as the last actual day reviewed... as a moment object.
-        if (arr.length == 0) {
+        if (reviewArray.length == 0) {
             return dateDiscovered;
         } else {
-            return moment(arr[arr.length - 1][1], "MM/DD/YYYY");
+            return moment(reviewArray[reviewArray.length - 1][1], "MM/DD/YYYY");
         }
     }
     function actualReviewDate(str, wd) {
@@ -56,7 +65,7 @@ function parseReport(e) {
         return reviewDate(str, wd).isBefore(new moment().subtract(90, 'days'))
     }
     function lastReviewedBy(str) {
-        var arr = [...str.matchAll(/([A-Z]+,\s[A-Z]).*\n.*(?:R.*V.*W(?:ED|D))/g)];
+        var arr = [...str.matchAll(/([A-Z]+,\s[A-Z]).*(?:\r|\n|\r\n).*(?:R.*V.*W(?:ED|D)?)/g)];
         if (arr.length == 0) {
             return "originator"
         } else {
@@ -64,7 +73,7 @@ function parseReport(e) {
         }
     }
     // 'data' becomes a collection of rows from the awn report
-    let result = csvParse(e, function(d) {
+    let result = csvParse(e, (d) => {
         return {
             id: d.JCN.substring(5),
             work_center: d.WORKCENTER,
@@ -78,7 +87,7 @@ function parseReport(e) {
             ships_force_comments: d.SHIPS_FORCE_COMMENTS.split('').filter(l => l != '*').join(''),
             equip_status: d.EQUIP_STATUS_CODE,
             status: d.JOB_STATUS,
-            priority_code: d.PRIORITY_CODE,
+            priority_code: d.PRIORITY_CODE.split('').filter(i => i != '=' && i != '"').join(''),
             act_taken: d.ACTION_TAKEN_CODE,
             avail: d.AVAIL_ID,
             type_avail: d.TYPE_AVAILABILITY_CODE.split('').filter(i => i != '=' && i != '"').join(''),
@@ -101,11 +110,12 @@ function parseReport(e) {
             expired_reviewed_date: expiredReviewDate(d.SHIPS_FORCE_COMMENTS, d.WHEN_DISCOVERED_DATE),
             reviewed_by: lastReviewedBy(d.SHIPS_FORCE_COMMENTS),
         }
-    }).filter(i => i.location != "").filter(i => i.id != "");
+    }).filter(i => {
+        return i.id != ""
+    });
     // The trailing filter here removes any jobs that AWN returned to me that were garbage.
     
     // Dispatch with the result array. That pushes all the jobs to firebase.
-    
     uploadJobsFromArray(result);
 }
 

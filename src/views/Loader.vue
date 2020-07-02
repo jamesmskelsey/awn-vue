@@ -44,7 +44,7 @@ export default {
             function reviewDate(str, wd) {
                 const dateDiscovered = parseDateStringToMoment(wd);
                 // Strip the last date that looks like a review date out
-                var arr = [...str.matchAll(/((?:\d|\d\d)\/\d\d\/\d\d\d\d).*\n.*(?:R.*V.*W(?:ED|D))/g)]
+                var arr = [...str.matchAll(/((?:\d|\d\d)\/\d\d\/\d\d\d\d).*(?:\r|\n|\r\n).*(?:R.*V.*W(?:ED|D)*)/g)];
                 // return that as the last actual day reviewed... as a moment object.
                 if (arr.length == 0) {
                     return dateDiscovered;
@@ -59,7 +59,7 @@ export default {
                 return reviewDate(str, wd).isBefore(new moment().subtract(90, 'days'))
             }
             function lastReviewedBy(str) {
-                var arr = [...str.matchAll(/([A-Z]+,\s[A-Z]).*\n.*(?:R.*V.*W(?:ED|D))/g)];
+                var arr = [...str.matchAll(/([A-Z]+,\s[A-Z]).*(?:\r|\n|\r\n).*(?:R.*V.*W(?:ED|D)?)/g)];
                 if (arr.length == 0) {
                     return "originator"
                 } else {
@@ -81,7 +81,7 @@ export default {
                     ships_force_comments: d.SHIPS_FORCE_COMMENTS.split('').filter(l => l != '*').join(''),
                     equip_status: d.EQUIP_STATUS_CODE,
                     status: d.JOB_STATUS,
-                    priority_code: d.PRIORITY_CODE,
+                    priority_code: d.PRIORITY_CODE.split('').filter(i => i != '=' && i != '"').join(''),
                     act_taken: d.ACTION_TAKEN_CODE,
                     avail: d.AVAIL_ID,
                     type_avail: d.TYPE_AVAILABILITY_CODE.split('').filter(i => i != '=' && i != '"').join(''),
@@ -104,7 +104,7 @@ export default {
                     expired_reviewed_date: expiredReviewDate(d.SHIPS_FORCE_COMMENTS, d.WHEN_DISCOVERED_DATE),
                     reviewed_by: lastReviewedBy(d.SHIPS_FORCE_COMMENTS),
                 }
-            }).filter(i => i.location != "").filter(i => i.id != "");;
+            }).filter(i => i.location != "").filter(i => i.id != "");
             // The trailing filter here removes any jobs that AWN returned to me that were garbage.
             
             // Dispatch with the result array. That pushes all the jobs to firebase.

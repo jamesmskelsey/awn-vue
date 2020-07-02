@@ -9,7 +9,7 @@ export default new Vuex.Store({
     wns: [],
     job: {},
     awn: [],
-    selected_work_centers: ["AS01", "AS02"],
+    selected_work_centers: [],
     work_centers: [],
     count: 0,
   },

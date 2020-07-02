@@ -27,7 +27,10 @@ export default {
             </div>
             <h2 class="mt-3 text-xl font-bold">Comments</h2>
             <div class="m-2">
+                <h2 class="mt-2 text-lg">Ship's Force</h2>
                 <p>{{job.ships_force_comments}}</p>
+                <h2 class="mt-2 text-lg">Repo's Comments</h2>
+                <p>{{job.repos_comments}}</p>
                 <generated-comments :job="job" />
             </div>
             <hr>

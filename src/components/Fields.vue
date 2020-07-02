@@ -2,33 +2,31 @@
 export default {
     data: function() {
         return {
-            fields: [
-                "WORKCENTER",
-                "LOCATION",
-                "SERIAL_NUMBER",
-                "JCN",
-                "PROBLEM",
-                "RECOMMENDATION",
-                "SHIPS_FORCE_COMMENTS",
-                "EQUIP_STATUS_CODE",
-                "JOB_STATUS",
-                "PRIORITY_CODE",
-                "ACTION_TAKEN",
-                "AVAIL_ID",
-                "TYPE_AVAILABILITY_CODE",
-                "MAINTENANCE_TEAM_COMMENTS",
-                "SAFETY_CODE",
-                "COMPLETION_DATE",
-                "WHEN_DISCOVERED_DATE",
-                "DEFERRAL_DATE",
-                "DEFERRAL_REASON_CODE",
-                "ACTUAL_SOLUTION",
-                "PARTS_ORDERED",
-                "ROUTING_LEVEL",
-                "BLOCK_10",
-                "DAYS_OLD",
-                "DAYS_SINCE_UPDATE",
-            ]
+            fields: ["ACTION_TAKEN",
+             "ACTUAL_SOLUTION",
+             "AVAIL_ID",
+             "BLOCK_10",
+             "COMPLETION_DATE",
+             "DAYS_OLD",
+             "DAYS_SINCE_UPDATE",
+             "DEFERRAL_DATE",
+             "DEFERRAL_REASON_CODE",
+             "EQUIP_STATUS_CODE",
+             "JCN",
+             "JOB_STATUS",
+             "LOCATION",
+             "MAINTENANCE_TEAM_COMMENTS",
+             "PARTS_ORDERED",
+             "PRIORITY_CODE",
+             "PROBLEM",
+             "RECOMMENDATION",
+             "ROUTING_LEVEL",
+             "SAFETY_CODE",
+             "SERIAL_NUMBER",
+             "SHIPS_FORCE_COMMENTS",
+             "TYPE_AVAILABILITY_CODE",
+             "WHEN_DISCOVERED_DATE",
+             "WORKCENTER"]
         }
     }
 }
@@ -36,7 +34,7 @@ export default {
 
 <template>
     <div>
-        <h2 class="text-xl">ADHOC Fields</h2>
+        <h2 class="mt-4 text-xl">ADHOC Fields</h2>
         <p class="text-gray-700 text-sm">Checkboxes are provided for your convenience. Each is required to be in your ADHOC.</p>
         <div class="ml-4" v-for="field in fields" v-bind:key="field">
             <input class="m-1" type="checkbox" :id="field" />

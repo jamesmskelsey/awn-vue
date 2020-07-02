@@ -6,7 +6,7 @@
     <div class="no-print">
         <div class="m-4 inline-block border rounded">
         <div class="m-4 block">
-            <label class="block my-2 text-lg">Menu Visibility</label>
+            <label v-if="showMenu" class="block my-2 text-lg">Menu Visibility</label>
             <button v-on:click="() => showMenu = !showMenu" class="block border border-gray-500 rounded px-4 py-2 hover:bg-gray-200 transition">
             {{showMenu ? "Hide Menu" : "Show Menu"}}
             </button>
@@ -76,7 +76,7 @@
             </button>
         </div>
         </div>
-        <div class="m-4 inline-block border rounded">
+        <div v-if="showMenu" class="m-4 inline-block border rounded">
             <div class="m-4 block">
                 <label class="block my-2 text-lg">Search by WC</label>
                 <button v-if="selected_work_centers.length <= 10" v-on:click="search" class="block border border-gray-500 rounded px-4 py-2 hover:bg-gray-200 transition">
@@ -86,11 +86,20 @@
                     Too many WC selected
                 </button>
             </div>
+        </div>
+        <div v-if="showMenu" class="m-4 inline-block border rounded">
             <div class="m-4 block">
                 <label class="block mt-2 text-lg">Show Hot Jobs</label>
                 <p class="text-gray-500 mb-2 text-xs">Selects all WC</p>
                 <button v-on:click="searchHotJobs" class="block border border-gray-500 rounded px-4 py-2 hover:bg-gray-200 transition">
                     Hot!
+                </button>
+            </div>
+            <div class="m-4 block">
+                <label class="block mt-2 text-lg">Show Commented Upon Jobs</label>
+                <p class="text-gray-500 mb-2 text-xs">Selects all WC</p>
+                <button v-on:click="searchRepoCommentJobs" class="block border border-gray-500 rounded px-4 py-2 hover:bg-gray-200 transition">
+                    Commented Jobs
                 </button>
             </div>
         </div>    
@@ -185,6 +194,10 @@
           </div>
           <div v-if="t.ships_force_comments.length > 1">
             Ship's Force: {{t.ships_force_comments}}
+            <hr>
+          </div>
+          <div v-if="t.repo_comments && t.repo_comments.length > 1">
+            Repo's Comments: {{t.repo_comments}}
             <hr>
           </div>
          <div v-if="t.actual_solution.length > 0">
@@ -368,6 +381,19 @@ export default {
         const snapshot = await wnsRef.where('hot_job', '==', true).get();
         if (snapshot.empty) {
             console.log('Nothing found.');
+            return;
+        }
+
+        snapshot.forEach(doc => {
+            this.$store.dispatch('rememberWN', {...doc.data()})
+            this.selectAll();
+        })
+    },
+    searchRepoCommentJobs: async function() {
+        this.$store.dispatch('clearAWN');
+        const snapshot = await wnsRef.where('repo_comments', ">", "").get();
+        if (snapshot.empty) {
+            console.log("Nothing Found");
             return;
         }
 
