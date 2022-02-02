@@ -1,5 +1,4 @@
-const { db } = require('./db.js');
-
+const { db } = require("./db.js");
 
 /*
 const wcRef = db.collection('work_centers');
@@ -15,115 +14,148 @@ wcs.forEach(wc => {
 })
 */
 
-const wnRef = db.collection('wns');
+const wnRef = db.collection("wns");
 
 function uploadJobsFromArray(jobs) {
-    // I have two chunks of code here. I could write a thing to check for arguments, but i just don't wanna.
-    // Disable uploading for t/s
-    console.log("Uploading: ", jobs.length, " jobs.")
-    Promise.all(jobs.map(job => uploadJob(job))).then((values) => {
-        console.log("uploaded all jobs");
-    })
-    // console.log(jobs.length)
-    // jobs.forEach((job) => {
-    //         console.log(job.id, job.actual_reviewed_date, job.reviewed_by)
-
-
-    // })
+  // Disable uploading for t/s
+  console.info(`Uploading: ${jobs.length} jobs.`);
+  Promise.all(jobs.map((job) => uploadJob(job))).then(() => {
+    console.info("Uploaded all jobs");
+  });
 }
 
 function uploadJob(job) {
-    return wnRef.doc(job.id).set(job);
+  return wnRef.doc(job.id).set(job);
 }
 
-const {csvParse} = require('d3-dsv');
-const moment = require('moment');
+const { csvParse } = require("d3-dsv");
+const moment = require("moment");
 
 function parseReport(e) {
-    function parseDateStringToMoment(str) {
-        return str != "" ? moment(str.split('').filter(i => i != '=' && i != '"').join(''), "MM/DD/YYYY") : "";
+  function parseDateStringToMoment(str) {
+    return str != ""
+      ? moment(
+          str
+            .split("")
+            .filter((i) => i != "=" && i != '"')
+            .join(""),
+          "MM/DD/YYYY"
+        )
+      : "";
+  }
+  function formatDateString(str) {
+    return parseDateStringToMoment(str) != ""
+      ? parseDateStringToMoment(str).format("DD MMM YY")
+      : "";
+  }
+  function reviewDate(str, wd) {
+    const dateDiscovered = parseDateStringToMoment(wd);
+    // Strip the last date that looks like a review date out
+    const reviewArray = [
+      ...str.matchAll(
+        /((?:\d|\d\d)\/\d\d\/\d\d\d\d).*(?:\r|\n|\r\n).*(?:R.*V.*W(?:ED|D)*)/g
+      ),
+    ];
+
+    // return that as the last actual day reviewed... as a moment object.
+    if (reviewArray.length == 0) {
+      return dateDiscovered;
+    } else {
+      return moment(reviewArray[reviewArray.length - 1][1], "MM/DD/YYYY");
     }
-    function formatDateString(str) {
-        return parseDateStringToMoment(str) != "" ? parseDateStringToMoment(str).format('DD MMM YY') : "";
+  }
+  function actualReviewDate(str, wd) {
+    return reviewDate(str, wd).format("DD MMM YY");
+  }
+  function expiredReviewDate(str, wd) {
+    return reviewDate(str, wd).isBefore(new moment().subtract(90, "days"));
+  }
+  function lastReviewedBy(str) {
+    var arr = [
+      ...str.matchAll(
+        /([A-Z]+,\s[A-Z]).*(?:\r|\n|\r\n).*(?:R.*V.*W(?:ED|D)?)/g
+      ),
+    ];
+    if (arr.length == 0) {
+      return "originator";
+    } else {
+      return arr[arr.length - 1][1];
     }
-    function reviewDate(str, wd) {
-        const dateDiscovered = parseDateStringToMoment(wd);
-        // Strip the last date that looks like a review date out
-        const reviewArray = [...str.matchAll(/((?:\d|\d\d)\/\d\d\/\d\d\d\d).*(?:\r|\n|\r\n).*(?:R.*V.*W(?:ED|D)*)/g)]
-        
-        // return that as the last actual day reviewed... as a moment object.
-        if (reviewArray.length == 0) {
-            return dateDiscovered;
-        } else {
-            return moment(reviewArray[reviewArray.length - 1][1], "MM/DD/YYYY");
-        }
-    }
-    function actualReviewDate(str, wd) {
-        return reviewDate(str, wd).format('DD MMM YY');
-    }
-    function expiredReviewDate(str, wd) {
-        return reviewDate(str, wd).isBefore(new moment().subtract(90, 'days'))
-    }
-    function lastReviewedBy(str) {
-        var arr = [...str.matchAll(/([A-Z]+,\s[A-Z]).*(?:\r|\n|\r\n).*(?:R.*V.*W(?:ED|D)?)/g)];
-        if (arr.length == 0) {
-            return "originator"
-        } else {
-            return arr[arr.length - 1][1];
-        }
-    }
-    // 'data' becomes a collection of rows from the awn report
-    let result = csvParse(e, (d) => {
-        return {
-            id: d.JCN.substring(5),
-            work_center: d.WORKCENTER,
-            location: d.LOCATION,
-            equipment: d.EQUIPMENT,
-            sn: d.SERIAL_NUMBER,
-            summary: d.SUMMARY,
-            jcn: d.JCN.substring(9),
-            problem: d.PROBLEM,
-            recommendation: d.RECOMMENDATION,
-            ships_force_comments: d.SHIPS_FORCE_COMMENTS.split('').filter(l => l != '*').join(''),
-            equip_status: d.EQUIP_STATUS_CODE,
-            status: d.JOB_STATUS,
-            priority_code: d.PRIORITY_CODE.split('').filter(i => i != '=' && i != '"').join(''),
-            act_taken: d.ACTION_TAKEN_CODE,
-            avail: d.AVAIL_ID,
-            type_avail: d.TYPE_AVAILABILITY_CODE.split('').filter(i => i != '=' && i != '"').join(''),
-            port_eng_comments: d.MAINTENANCE_TEAM_COMMENTS,
-            safety_code: d.SAFETY_CODE,
-            problem_mentions_safety: d.PROBLEM.toLowerCase().search(/safety|unsafe/g) > -1,
-            recommendation_mentions_safety: d.RECOMMENDATION.toLowerCase().search(/safety|unsafe/g) > -1,
-            completion_date: formatDateString(d.COMPLETION_DATE),
-            date_discovered: formatDateString(d.WHEN_DISCOVERED_DATE),
-            deferral_date: formatDateString(d.DEFERRAL_DATE),
-            deferral_reason: d.DEFERRAL_REASON_CODE.split('').filter(i => i != '=' && i != '"').join(''),
-            actual_solution: d.ACTUAL_SOLUTION,
-            should_have_parts: d.RECOMMENDATION.toLowerCase().search(/part|order|requisition|open purchase/g) > -1,
-            parts: d.PARTS_ORDERED,
-            routing_level: d.ROUTING_LEVEL,
-            block_10: d.BLOCK_10,
-            days_old: d.DAYS_OLD.split('').filter(i => i != '=' && i != '"').join(''),
-            days_since_update: d.DAYS_SINCE_UPDATE.split('').filter(i => i != '=' && i != '"').join(''),
-            actual_reviewed_date: actualReviewDate(d.SHIPS_FORCE_COMMENTS, d.WHEN_DISCOVERED_DATE),
-            expired_reviewed_date: expiredReviewDate(d.SHIPS_FORCE_COMMENTS, d.WHEN_DISCOVERED_DATE),
-            reviewed_by: lastReviewedBy(d.SHIPS_FORCE_COMMENTS),
-        }
-    }).filter(i => {
-        return i.id != ""
-    });
-    // The trailing filter here removes any jobs that AWN returned to me that were garbage.
-    
-    // Dispatch with the result array. That pushes all the jobs to firebase.
-    uploadJobsFromArray(result);
+  }
+  // 'data' becomes a collection of rows from the awn report
+  let result = csvParse(e, (d) => {
+    return {
+      id: d.JCN.substring(5),
+      work_center: d.WORKCENTER,
+      location: d.LOCATION,
+      equipment: d.EQUIPMENT,
+      sn: d.SERIAL_NUMBER,
+      summary: d.SUMMARY,
+      jcn: d.JCN.substring(9),
+      problem: d.PROBLEM,
+      recommendation: d.RECOMMENDATION,
+      ships_force_comments: d.SHIPS_FORCE_COMMENTS.split("")
+        .filter((l) => l != "*")
+        .join(""),
+      equip_status: d.EQUIP_STATUS_CODE,
+      status: d.JOB_STATUS,
+      priority_code: d.PRIORITY_CODE.split("")
+        .filter((i) => i != "=" && i != '"')
+        .join(""),
+      act_taken: d.ACTION_TAKEN_CODE,
+      avail: d.AVAIL_ID,
+      type_avail: d.TYPE_AVAILABILITY_CODE.split("")
+        .filter((i) => i != "=" && i != '"')
+        .join(""),
+      port_eng_comments: d.MAINTENANCE_TEAM_COMMENTS,
+      safety_code: d.SAFETY_CODE,
+      problem_mentions_safety:
+        d.PROBLEM.toLowerCase().search(/safety|unsafe/g) > -1,
+      recommendation_mentions_safety:
+        d.RECOMMENDATION.toLowerCase().search(/safety|unsafe/g) > -1,
+      completion_date: formatDateString(d.COMPLETION_DATE),
+      date_discovered: formatDateString(d.WHEN_DISCOVERED_DATE),
+      deferral_date: formatDateString(d.DEFERRAL_DATE),
+      deferral_reason: d.DEFERRAL_REASON_CODE.split("")
+        .filter((i) => i != "=" && i != '"')
+        .join(""),
+      actual_solution: d.ACTUAL_SOLUTION,
+      should_have_parts:
+        d.RECOMMENDATION.toLowerCase().search(
+          /part|order|requisition|open purchase/g
+        ) > -1,
+      parts: d.PARTS_ORDERED,
+      routing_level: d.ROUTING_LEVEL,
+      block_10: d.BLOCK_10,
+      days_old: d.DAYS_OLD.split("")
+        .filter((i) => i != "=" && i != '"')
+        .join(""),
+      days_since_update: d.DAYS_SINCE_UPDATE.split("")
+        .filter((i) => i != "=" && i != '"')
+        .join(""),
+      actual_reviewed_date: actualReviewDate(
+        d.SHIPS_FORCE_COMMENTS,
+        d.WHEN_DISCOVERED_DATE
+      ),
+      expired_reviewed_date: expiredReviewDate(
+        d.SHIPS_FORCE_COMMENTS,
+        d.WHEN_DISCOVERED_DATE
+      ),
+      reviewed_by: lastReviewedBy(d.SHIPS_FORCE_COMMENTS),
+    };
+  }).filter((i) => {
+    return i.id != "";
+  });
+  // The trailing filter here removes any jobs that AWN returned to me that were garbage.
+
+  // Dispatch with the result array. That pushes all the jobs to firebase.
+  uploadJobsFromArray(result);
 }
 
-
-const fs = require('fs');
+const fs = require("fs");
 const fileName = "./WN_ADHOC.csv";
 
-fs.readFile(fileName, 'utf8', (err, contents) => {
-    if (err) throw err;
-    parseReport(contents);
-})
+fs.readFile(fileName, "utf8", (err, contents) => {
+  if (err) throw err;
+  parseReport(contents);
+});
