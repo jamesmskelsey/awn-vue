@@ -1,22 +1,14 @@
 <template>
-    <div id="nav no-print">
-      <router-link to="/">Home</router-link> |
-      <router-link to="/loader">Loader</router-link>
-    </div>
+  <!-- Nobody wants to see this when they print ;) -->
+  <nav class="font-bold text-slate-800 no-print p-3">
+    <router-link to="/">Home</router-link> |
+    <router-link to="/loader">Loader</router-link>
+  </nav>
 </template>
 
 <style scoped>
-
-#nav {
-  padding: 30px;
-}
-
-#nav a {
-  font-weight: bold;
-  color: #2c3e50;
-}
-
-#nav a.router-link-exact-active {
+/* Modify the class that vue-router applies */
+nav a.router-link-exact-active {
   color: #42b983;
 }
 
@@ -26,5 +18,4 @@
     height: 0;
   }
 }
-
 </style>

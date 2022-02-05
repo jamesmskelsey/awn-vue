@@ -1,5 +1,17 @@
+/* 
+This file was really only ever used once to do an initial load to make sure I
+I had some data to work with. It's really not important.
+I did spend some time moving code around before I remembered that, though. :\
+*/
 const { db } = require("./db.js");
 
+// https://github.com/d3/d3-dsv
+const { csvParse } = require("d3-dsv");
+// https://momentjs.com/
+const moment = require("moment");
+
+const fs = require("fs");
+const fileName = "./WN_ADHOC.csv";
 /*
 const wcRef = db.collection('work_centers');
 
@@ -7,29 +19,33 @@ const wcRef = db.collection('work_centers');
 
 const wcs = ["CE06", "ES01", "ER09", "SS08", "EM01", "EA01", "DA01", "DB01", "ER03", "CE05", "SS05", "CE01", "MH01", "EA05", "HE01", "EA02", "ER04", "WG03", "NN01", "V101", "SS06", "WG01", "CC03", "EE01", "IM03", "OI01", "OT01", "SERV", "EM02", "EE03", "SS03", "CC01", "AS01", "ER01", "CSF3", "IM02", "SS02", "EE02", "IM01", "CC02", "EA03", "CSF4", "SS01", "MD01", "IM04", "V402", "CH01", "EX04", "V401", "EE04", "CE02", "AS02", "EX01", "CSF1", "EB14", "EXSA", "OC01", "OZ01", "OE01", "V301", "CE07", "OD01", "V102", "WG02", "CSF2", "CSE1", "CE03", "VI01", "EM03", "NECC", "OW02", "CS02", "CE04"];
 
-wcs.forEach(wc => {
-    wcRef.doc(wc).set({
-        wc
-    })
-})
 */
 
+// wn means "Work notification" and each one is a "job" that must be completed on the ship
 const wnRef = db.collection("wns");
 
+/*
+  jobs: an array of 'job' objects, formatted in the csvParse method below
+  Uploads the jobs to firebase, which updates each record as necessary.
+  This allows a user to download data from "AWN" on the ship and then simply import
+  the new data and not worry about overwriting local changes (as in the comments a user might have made)
+*/
 function uploadJobsFromArray(jobs) {
-  // Disable uploading for t/s
   console.info(`Uploading: ${jobs.length} jobs.`);
   Promise.all(jobs.map((job) => uploadJob(job))).then(() => {
+    // There's no need to actually do anything with them at this point, as I want the user to do their search on the home page
+    // to get the information they wanted.
     console.info("Uploaded all jobs");
   });
 }
 
+// Upload a single job
 function uploadJob(job) {
   return wnRef.doc(job.id).set(job);
 }
 
-const { csvParse } = require("d3-dsv");
-const moment = require("moment");
+// Basically a class at this point, to parse reports. When I wrote this,
+// I didn't have access to classes because I was in ie11 browser directly.
 
 function parseReport(e) {
   function parseDateStringToMoment(str) {
@@ -147,13 +163,12 @@ function parseReport(e) {
     return i.id != "";
   });
   // The trailing filter here removes any jobs that AWN returned to me that were garbage.
+  // AWN had a problem where it gave me empty, dead jobs that should have been removed but... just never were.
+  // They ONLY showed up when we did a datapull. Caused quite the alarm, if I recall correctly.
 
   // Dispatch with the result array. That pushes all the jobs to firebase.
   uploadJobsFromArray(result);
 }
-
-const fs = require("fs");
-const fileName = "./WN_ADHOC.csv";
 
 fs.readFile(fileName, "utf8", (err, contents) => {
   if (err) throw err;
