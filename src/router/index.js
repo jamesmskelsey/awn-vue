@@ -1,39 +1,47 @@
-import Vue from 'vue'
-import VueRouter from 'vue-router'
-import Home from '../views/Home.vue'
-import Loader from '../views/Loader.vue'
-import Job from '../views/Job.vue'
+import Vue from "vue";
+import VueRouter from "vue-router";
+import Home from "../views/Home.vue";
+import Loader from "../views/Loader.vue";
+import Job from "../views/Job.vue";
 
-Vue.use(VueRouter)
+Vue.use(VueRouter);
+
+// Reference for vue router https://router.vuejs.org/guide/
 
 const routes = [
   {
-    path: '/',
-    name: 'Home',
-    component: Home
+    // Shows the search, a small nav uh... "bar" at the top
+    path: "/",
+    name: "Home",
+    component: Home,
   },
   {
-    path: '/about',
-    name: 'About',
+    // There's not even a link to this, I think I was just playing ages about with
+    // the lazy loading pages
+    path: "/about",
+    name: "About",
     // route level code-splitting
     // this generates a separate chunk (about.[hash].js) for this route
     // which is lazy-loaded when the route is visited.
-    component: () => import(/* webpackChunkName: "about" */ '../views/About.vue')
+    component: () =>
+      import(/* webpackChunkName: "about" */ "../views/About.vue"),
   },
   {
-      path: '/loader',
-      name: 'Loader',
-      component: Loader,
+    // The route to load new data up
+    path: "/loader",
+    name: "Loader",
+    component: Loader,
   },
   {
-      path: '/job/:id',
-      name: 'Job',
-      component: Job,
-  }
-]
+    // a job detail/edit page
+    path: "/job/:id",
+    name: "Job",
+    component: Job,
+  },
+];
 
 const router = new VueRouter({
-  routes
-})
+  routes,
+});
 
-export default router
+export default router;

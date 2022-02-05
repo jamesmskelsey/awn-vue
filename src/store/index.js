@@ -1,5 +1,6 @@
 import Vue from "vue";
 import Vuex from "vuex";
+// https://vuefire.vuejs.org/vuexfire/
 import { vuexfireMutations, firestoreAction } from "vuexfire";
 import { db } from "../db.js";
 Vue.use(Vuex);
@@ -16,7 +17,7 @@ export default new Vuex.Store({
   mutations: {
     ...vuexfireMutations,
     addAWN(state, awn) {
-      // This adds an ARRAY of Work Notificationis to state.awn
+      // This adds an ARRAY of Work Notifications to state.awn
       state.awn = [...awn];
     },
     addWN(state, wn) {
@@ -28,6 +29,7 @@ export default new Vuex.Store({
       state.wns = [];
     },
     setSelectedWorkCenters(state, selected) {
+      // Allows for multiple work centers to be selected.
       state.selected_work_centers = [...selected];
     },
   },
@@ -38,6 +40,7 @@ export default new Vuex.Store({
         wait: true,
       });
     }),
+    // This binds a single job, for looking at the detail page.
     bindJob: firestoreAction(async function({ bindFirestoreRef }, payload) {
       await bindFirestoreRef(
         "job",
@@ -45,10 +48,10 @@ export default new Vuex.Store({
         { wait: true }
       );
     }),
+    // In this case, "awn" stands for "all work notifications"
     clearAWN({ commit }) {
       commit("clearAWN");
     },
-    // In this case, "awn" stands for "all work notifications"
     rememberWN({ commit }, wn) {
       commit("addWN", wn);
     },

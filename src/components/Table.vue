@@ -175,6 +175,7 @@
     </table>
     <div v-else class="p-5">
       <h1 class="text-5xl">There's nothing here, yet</h1>
+      <h2 class="text-4xl text-red-500" v-if="this.errorMessage.length > 0">{{errorMessage}}</h2>
       <p>
         There's a few solutions. You may need to search for something. There may
         be zero results from your search.
@@ -221,6 +222,7 @@ export default {
       showMenu: true,
       reviewDays: 90,
       moment,
+      errorMessage: "",
     };
   },
   mounted: async function() {
@@ -298,39 +300,42 @@ export default {
     ...mapActions(["bindWC", "rememberWN", "rememberSelectedWorkCenters"]),
     search: async function() {
       // Firestore 'in' operator is limited to an array of 10.
-      if (this.selected_work_centers.length <= 10) {
+      if (this.selected_work_centers.length <= 10 && this.selected_work_centers.length > 0) {
+        this.errorMessage = "";
         this.$store.dispatch("clearAWN");
         const snapshot = await wnsRef
           .where("work_center", "in", this.selected_work_centers)
           .get();
         if (snapshot.empty) {
-          console.error("Nothing found.");
+          console.info("Nothing found.");
           return;
         }
 
         snapshot.forEach((doc) => {
           this.$store.dispatch("rememberWN", { ...doc.data() });
         });
+      } else {
+        this.errorMessage = "We can't handle more than 10 work centers, and you must select at least 1."
       }
     },
     searchHotJobs: async function() {
       this.$store.dispatch("clearAWN");
       const snapshot = await wnsRef.where("hot_job", "==", true).get();
       if (snapshot.empty) {
-        console.error("Nothing found.");
+        console.info("Nothing found.");
         return;
       }
-
       snapshot.forEach((doc) => {
         this.$store.dispatch("rememberWN", { ...doc.data() });
         this.selectAll();
       });
     },
     searchRepoCommentJobs: async function() {
+      // Repo means "Repair Officer" in this context.
       this.$store.dispatch("clearAWN");
       const snapshot = await wnsRef.where("repo_comments", ">", "").get();
       if (snapshot.empty) {
-        console.error("Nothing found.");
+        console.info("Nothing found.");
         return;
       }
 
@@ -347,7 +352,6 @@ export default {
       );
     },
     unselectAll: function() {
-      // this.selected_work_centers = [];
       this.$store.dispatch("rememberSelectedWorkCenters", []);
     },
     unselectAllStatuses: function() {
