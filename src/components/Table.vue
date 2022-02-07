@@ -216,7 +216,6 @@ export default {
       locationFilter: "",
       equipmentFilter: "",
       statusFilter: [],
-      //selected_work_centers: [],
       priorityFilter: [],
       priorityOptions: [1, 2, 3, 4],
       showMenu: true,
@@ -233,12 +232,11 @@ export default {
   computed: {
     // Used to determine if a file has been loaded. Prevents showing an empty table.
     ...mapGetters(["wns"]),
+    // All work notifications
     awn: function() {
       return this.$store.state.awn;
     },
-    // selected_work_centers: function() {
-    //     return this.$store.state.selected_work_centers;
-    // },
+    // Sets the work centers the user has selected in a multiple select in the store
     selected_work_centers: {
       get() {
         return this.$store.state.selected_work_centers;
@@ -247,12 +245,15 @@ export default {
         this.$store.dispatch("rememberSelectedWorkCenters", e);
       },
     },
+    // Loads the available work centers from the database
     work_centers: function() {
       return this.$store.state.work_centers;
     },
+    // Verifies that the work notifications have been received before we try displaying things
     awnLoaded: function() {
       return !this.wns.length > 0;
     },
+    // Only shows the status options that are actually available in the list of shown jobs
     statusOptions: function() {
       const statuses = this.wns.map((e) => e.status);
       return statuses.filter(
@@ -265,6 +266,14 @@ export default {
       output = output.filter((e) => {
         return this.selected_work_centers.includes(e.work_center);
       });
+      // Checks if something is typed in to the location filter
+      // Locations are expected to be in a ship addressing system
+      // For example, in 3-41-1-L:
+      // 3 is the deck number, which means it's two decks below the main deck, which is at 1
+      // 41 is the frame number, which means it's 41 frames from the beginning of the keel
+      // 1 means it the first space port of the centerline on this frame number
+      // L means that it is some sort of living space. This happens to be a restroom.
+      // Every Sailor is expected to know this system, and it makes sense to the customer. 
       if (this.locationFilter.length > 0) {
         output = output.filter((e) => {
           return (
@@ -273,6 +282,7 @@ export default {
           );
         });
       }
+      // Checks if something is typed in to the equipment filter
       if (this.equipmentFilter.length > 0) {
         output = output.filter((e) => {
           return (
@@ -282,11 +292,13 @@ export default {
           );
         });
       }
+      // Checks if a status filter is selected
       if (this.statusFilter.length > 0) {
         output = output.filter((e) => {
           return this.statusFilter.includes(e.status);
         });
       }
+      // Checks if a priority filter is selected
       if (this.priorityFilter.length > 0) {
         output = output.filter((e) => {
           return this.priorityFilter.includes(e.priority_code);
